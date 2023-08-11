@@ -10,11 +10,6 @@ import (
 	"net/http"
 )
 
-const (
-	IDBase = 10
-	IDBits = 64
-)
-
 type SignUp struct {
 	RedisClient *redis.Client
 	Logger      *zap.Logger
