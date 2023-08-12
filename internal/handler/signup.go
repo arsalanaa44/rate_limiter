@@ -45,6 +45,7 @@ func (s SignUp) RegisterUser(c echo.Context) error {
 
 	if err := s.RedisClient.HSet(ctx, "users:"+m.ID.String(),
 		"MonthSizeLimit", m.MonthSizeLimit,
+		"SizeConsumed", 0,
 		"MinuteRateLimit", m.MinuteRateLimit).
 		Err(); err != nil {
 		s.Logger.Error("hashset addition failed", zap.Error(err))
