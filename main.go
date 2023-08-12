@@ -31,9 +31,16 @@ func main() {
 		logger.Fatal("unable to connect to redis", zap.Error(err))
 	}
 
-	ha := handler.SignUp{db, logger.Named("signup")}
+	hs := handler.SignUp{db, logger.Named("signup")}
+	hs.Register(app.Group(""))
 
-	ha.Register(app.Group(""))
+	hm := handler.MonthlyQuotaChecker{db, logger.Named("hello")}
+	hd := handler.DataChecker{db, logger.Named("hello")}
+
+	app.Use(hd.Checker)
+	app.Use(hm.Checker)
+
+	app.GET("/hello", handler.Hello)
 
 	app.Debug = cfg.Debug
 

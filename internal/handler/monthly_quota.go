@@ -25,7 +25,7 @@ func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 		ctx := c.Request().Context()
 
 		userID := c.Request().Header.Get("UserID")
-		dataSize, _ := strconv.Atoi(c.Request().Header.Get("Content-Length"))
+		dataSize, _ := strconv.Atoi(c.Request().Header.Get("cl"))
 
 		userData, err := m.RedisClient.HGetAll(ctx, "users:"+userID).Result()
 		if err != nil {
@@ -38,12 +38,15 @@ func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 			MonthSizeLimit: 0,
 			SizeConsumed:   0,
 		}
+
 		if val, ok := userData["MonthSizeLimit"]; ok {
 			fmt.Sscanf(val, "%d", &user.MonthSizeLimit)
 		}
+
 		if val, ok := userData["SizeConsumed"]; ok {
 			fmt.Sscanf(val, "%d", &user.SizeConsumed)
 		}
+
 		user.SizeConsumed += dataSize
 
 		if user.SizeConsumed > user.MonthSizeLimit {

@@ -23,16 +23,14 @@ func (ch DataChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 
 		dataID := c.Request().Header.Get("DataID")
 		userID := c.Request().Header.Get("UserID")
-
 		dataIDHash := sha256.Sum256([]byte(dataID))
 		dataIDHashString := hex.EncodeToString(dataIDHash[:])
 		member := dataIDHashString
 		set := SetKey + userID
-
 		isMember := ch.RedisClient.SIsMember(ctx, set, member).Val()
 		if isMember {
 			ch.Logger.Info("data already exist")
-			return c.String(http.StatusOK, "dataID already exists in Redis set")
+			return echo.ErrBadRequest
 
 		} else {
 			err := ch.RedisClient.SAdd(ctx, set, member).Err()
@@ -47,4 +45,5 @@ func (ch DataChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func (ch DataChecker) Register(g *echo.Group) {
+
 }
