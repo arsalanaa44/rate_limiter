@@ -12,8 +12,6 @@ var errRepeatedData = errors.New("data already exist")
 
 const (
 	setKey = "data:IDs:"
-	dataID = "Data-ID"
-	UserID = "User-ID"
 )
 
 type Cache struct {
@@ -27,7 +25,7 @@ func (ch Cache) IsDataCached(next echo.HandlerFunc) echo.HandlerFunc {
 		ctx := c.Request().Context()
 
 		dataID := c.Request().Header.Get(dataID)
-		userID := c.Request().Header.Get(UserID)
+		userID := c.Request().Header.Get(userID)
 
 		set := setKey + userID
 		if ch.RedisClient.SIsMember(ctx, set, dataID).Val() {

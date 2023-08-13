@@ -1,31 +1,32 @@
 package handler
 
 import (
-	"fmt"
+	"strconv"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"strconv"
 )
 
-type User struct {
-	ID             string
-	MonthSizeLimit int
-	SizeConsumed   int
-}
 
 type MonthlyQuotaChecker struct {
 	RedisClient *redis.Client
 	Logger      *zap.Logger
 }
 
-func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
+func (m MonthlyQuotaChecker) LimitConsumption(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
 		ctx := c.Request().Context()
 
-		userID := c.Request().Header.Get("UserID")
-		dataSize, _ := strconv.Atoi(c.Request().Header.Get("cl"))
+		var (
+			userID   string
+			consumed int
+			limit    int
+		)
+
+		userID = c.Request().Header.Get(userID)
+		dataSize, _ := strconv.Atoi(c.Request().Header.Get(dataSize))
 
 		userData, err := m.RedisClient.HGetAll(ctx, "users:"+userID).Result()
 		if err != nil {
@@ -33,30 +34,25 @@ func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.ErrInternalServerError
 		}
 
-		user := User{
-			ID:             userID,
-			MonthSizeLimit: 0,
-			SizeConsumed:   0,
+		// TODO handle errors 
+		if val, ok := userData[monthlyLimitKey]; ok {
+			limit, _ = strconv.Atoi(val)
 		}
 
-		if val, ok := userData["MonthSizeLimit"]; ok {
-			fmt.Sscanf(val, "%d", &user.MonthSizeLimit)
+		if val, ok := userData[consumptionKey]; ok {
+			consumed, _ = strconv.Atoi(val)
 		}
 
-		if val, ok := userData["SizeConsumed"]; ok {
-			fmt.Sscanf(val, "%d", &user.SizeConsumed)
-		}
+		consumed += dataSize
 
-		user.SizeConsumed += dataSize
-
-		if user.SizeConsumed > user.MonthSizeLimit {
-			m.Logger.Error("size limitation reached", zap.Any("consumed", user.SizeConsumed))
+		if consumed > limit {
+			m.Logger.Error("size limitation reached", zap.Any("consumed", consumed))
 			return echo.ErrNotAcceptable
 		}
 
 		// Update the user record in Redis
-		err = m.RedisClient.HSet(ctx, "users:"+user.ID,
-			"SizeConsumed", user.SizeConsumed).Err()
+		err = m.RedisClient.HSet(ctx, "users:"+userID,
+			consumptionKey, consumed).Err()
 		if err != nil {
 			m.Logger.Error("Failed to update user record in Redis", zap.Error(err))
 			return echo.ErrInternalServerError
@@ -64,7 +60,4 @@ func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 
 		return next(c)
 	}
-}
-
-func (m MonthlyQuotaChecker) Register(g *echo.Group) {
 }

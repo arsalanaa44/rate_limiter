@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/arsalanaa44/rate_limiter/internal/config"
 	"github.com/arsalanaa44/rate_limiter/internal/db/redis"
 	"github.com/arsalanaa44/rate_limiter/internal/handler"
-	"github.com/arsalanaa44/rate_limiter/pkg/redis_rate_limiter"
+	"github.com/arsalanaa44/rate_limiter/pkg/strategy"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
-	"time"
 )
 
 // just check the method
@@ -24,8 +25,14 @@ func main() {
 
 	if cfg.Debug {
 		logger, err = zap.NewDevelopment()
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		logger, err = zap.NewProduction()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	db, err := redis.NewRedisClient(cfg.Database)
@@ -33,23 +40,29 @@ func main() {
 		logger.Fatal("unable to connect to redis", zap.Error(err))
 	}
 
-	hs := handler.SignUp{db, logger.Named("signup")}
+	hs := handler.SignUp{
+		RedisClient: db,
+		Logger:      logger.Named("signup"),
+	}
 	hs.Register(app.Group(""))
 
-	hd := handler.DataChecker{db, logger.Named("hello")}
-	hm := handler.MonthlyQuotaChecker{db, logger.Named("hello")}
-
-	hr := handler.RateLimiter{
-		db,
-		logger.Named("hello"),
-		redis_rate_limiter.NewSortedSetCounterStrategy(db, time.Now),
+	hd := handler.Cache{
+		RedisClient: db,
+		Logger:      logger.Named("cache"),
+	}
+	hm := handler.MonthlyQuotaChecker{
+		RedisClient: db,
+		Logger:      logger.Named("monthly limit"),
 	}
 
-	app.Use(hr.RateLimit)
-	app.Use(hd.Checker)
-	app.Use(hm.Checker)
+	hr := handler.RateLimiter{
+		RedisClient: db,
+		Logger:      logger.Named("rate limiter"),
+		Strategy:    strategy.NewSortedSetCounterStrategy(db, time.Now),
+	}
 
-	app.GET("/hello", handler.Hello)
+	app.GET("/hello", handler.Hello, hr.RateLimit,  
+					hd.IsDataCached, hm.LimitConsumption)
 
 	app.Debug = cfg.Debug
 

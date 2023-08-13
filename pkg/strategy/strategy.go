@@ -1,4 +1,4 @@
-package redis_rate_limiter
+package strategy  
 
 import (
 	"context"

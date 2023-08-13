@@ -10,6 +10,11 @@ import (
 	"net/http"
 )
 
+const (
+	consumptionKey  = "size-consumed"
+	monthlyLimitKey = "monthly-limit"
+	minuteRateLimit = "minute-rate-limit"
+)
 type SignUp struct {
 	RedisClient *redis.Client
 	Logger      *zap.Logger
@@ -44,9 +49,9 @@ func (s SignUp) RegisterUser(c echo.Context) error {
 	}
 
 	if err := s.RedisClient.HSet(ctx, "users:"+m.ID.String(),
-		"MonthSizeLimit", m.MonthSizeLimit,
-		"SizeConsumed", 0,
-		"MinuteRateLimit", m.MinuteRateLimit).
+		monthlyLimitKey, m.MonthSizeLimit,
+		consumptionKey, 0,
+		minuteRateLimit, m.MinuteRateLimit).
 		Err(); err != nil {
 		s.Logger.Error("hashset addition failed", zap.Error(err))
 	}
