@@ -11,8 +11,8 @@ func NewRedisClient(config Config) (*redis.Client, error) {
 	// Create a new Redis client.
 	client := redis.NewClient(&redis.Options{
 		Addr:     config.URL,
-		Password: "",
-		DB:       0,
+		Password: config.Password,
+		DB:       config.DB,
 	})
 
 	// Test the connection to the Redis server.
