@@ -5,8 +5,10 @@ import (
 	"github.com/arsalanaa44/rate_limiter/internal/config"
 	"github.com/arsalanaa44/rate_limiter/internal/db/redis"
 	"github.com/arsalanaa44/rate_limiter/internal/handler"
+	"github.com/arsalanaa44/rate_limiter/pkg/redis_rate_limiter"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"time"
 )
 
 // just check the method
@@ -34,9 +36,16 @@ func main() {
 	hs := handler.SignUp{db, logger.Named("signup")}
 	hs.Register(app.Group(""))
 
-	hm := handler.MonthlyQuotaChecker{db, logger.Named("hello")}
 	hd := handler.DataChecker{db, logger.Named("hello")}
+	hm := handler.MonthlyQuotaChecker{db, logger.Named("hello")}
 
+	hr := handler.RateLimiter{
+		db,
+		logger.Named("hello"),
+		redis_rate_limiter.NewSortedSetCounterStrategy(db, time.Now),
+	}
+
+	app.Use(hr.RateLimit)
 	app.Use(hd.Checker)
 	app.Use(hm.Checker)
 
