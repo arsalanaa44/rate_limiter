@@ -1,11 +1,31 @@
 version: '3.9'
 
+networks:
+  rate_limiter:
+    driver: bridge
+
 services:
+  limiter:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    networks:
+      - rate_limiter
+    environment:
+      - LIMITER_DATABASE__URL="redis:6379"
+      - LIMITER_DEBUG="true"
+      - LIMITER_PORT="8080"
+
+
   redis:
     image: redis/redis-stack:latest
 
     # TODO - set password and test connection in browser
     # command: redis-server --requirepass hibech
+
+    networks:
+      - rate_limiter
 
     ports:
       - 6379:6379
