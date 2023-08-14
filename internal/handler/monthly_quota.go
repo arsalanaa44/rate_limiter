@@ -19,18 +19,22 @@ type MonthlyQuotaChecker struct {
 	Logger      *zap.Logger
 }
 
+const (
+	dataSize = "Data-Size"
+)
+
 func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 
 		ctx := c.Request().Context()
 
-		userID := c.Request().Header.Get("UserID")
-		dataSize, _ := strconv.Atoi(c.Request().Header.Get("cl"))
+		userID := c.Request().Header.Get(UserID)
+		dataSize, _ := strconv.Atoi(c.Request().Header.Get(dataSize))
 
 		userData, err := m.RedisClient.HGetAll(ctx, "users:"+userID).Result()
 		if err != nil {
 			m.Logger.Error("Failed to get user record from Redis", zap.Error(err))
-			return echo.ErrInternalServerError
+			return echo.ErrForbidden
 		}
 
 		user := User{
@@ -40,10 +44,12 @@ func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		if val, ok := userData["MonthSizeLimit"]; ok {
+		_:
 			fmt.Sscanf(val, "%d", &user.MonthSizeLimit)
 		}
 
 		if val, ok := userData["SizeConsumed"]; ok {
+		_:
 			fmt.Sscanf(val, "%d", &user.SizeConsumed)
 		}
 
@@ -51,7 +57,7 @@ func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 
 		if user.SizeConsumed > user.MonthSizeLimit {
 			m.Logger.Error("size limitation reached", zap.Any("consumed", user.SizeConsumed))
-			return echo.ErrNotAcceptable
+			return echo.NewHTTPError()
 		}
 
 		// Update the user record in Redis
@@ -64,7 +70,4 @@ func (m MonthlyQuotaChecker) Checker(next echo.HandlerFunc) echo.HandlerFunc {
 
 		return next(c)
 	}
-}
-
-func (m MonthlyQuotaChecker) Register(g *echo.Group) {
 }
