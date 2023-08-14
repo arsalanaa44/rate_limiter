@@ -33,23 +33,23 @@ func main() {
 		logger.Fatal("unable to connect to redis", zap.Error(err))
 	}
 
-	hs := handler.SignUp{db, logger.Named("signup")}
-	hs.Register(app.Group(""))
+	hs := handler.SignUp{RedisClient: db, Logger: logger.Named("signup")}
+	app.POST("/signup", hs.RegisterUser)
 
-	hd := handler.DataChecker{db, logger.Named("hello")}
-	hm := handler.MonthlyQuotaChecker{db, logger.Named("hello")}
+	hd := handler.Cache{RedisClient: db, Logger: logger.Named("data checker")}
+	hm := handler.MonthlyQuotaChecker{RedisClient: db, Logger: logger.Named("monthly quota checker")}
 
 	hr := handler.RateLimiter{
-		db,
-		logger.Named("hello"),
-		redis_rate_limiter.NewSortedSetCounterStrategy(db, time.Now),
+		RedisClient: db,
+		Logger:      logger.Named("rate limiter"),
+		Strategy:    redis_rate_limiter.NewSortedSetCounterStrategy(db, time.Now),
 	}
 
-	app.Use(hr.RateLimit)
-	app.Use(hd.Checker)
-	app.Use(hm.Checker)
-
-	app.GET("/hello", handler.Hello)
+	grp := app.Group("")
+	grp.Use(hr.RateLimit)
+	grp.Use(hm.Checker)
+	grp.Use(hd.IsDataCached)
+	grp.GET("/hello", handler.Hello)
 
 	app.Debug = cfg.Debug
 
