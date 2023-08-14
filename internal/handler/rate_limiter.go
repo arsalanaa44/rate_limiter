@@ -26,7 +26,6 @@ func (l RateLimiter) RateLimit(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// get the request
 		limit := l.findLimit(ctx, userID)
-		fmt.Println(limit)
 		req := redis_rate_limiter.Request{
 			Key:      userID,
 			Limit:    limit,
