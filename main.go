@@ -64,6 +64,7 @@ func main() {
 		hr.RateLimit,
 		hm.LimitConsumption,
 		hd.CheckDataCache,
+		handler.TimeoutMiddleware,
 	)
 
 	app.Debug = cfg.Debug
