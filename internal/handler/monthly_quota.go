@@ -47,11 +47,6 @@ func (m MonthlyQuotaChecker) LimitConsumption(next echo.HandlerFunc) echo.Handle
 
 		consumed += dataSize
 
-		if consumed > limit {
-			m.Logger.Error("size limitation reached", zap.Any("consumed", consumed))
-			return echo.NewHTTPError(405, "you are using more than your quota")
-		}
-
 		// Update the user record in Redis
 		err = m.RedisClient.HSet(ctx, "users:"+userID,
 			consumptionKey, consumed).Err()
@@ -59,6 +54,12 @@ func (m MonthlyQuotaChecker) LimitConsumption(next echo.HandlerFunc) echo.Handle
 			m.Logger.Error("Failed to update user record in Redis", zap.Error(err))
 			return echo.ErrInternalServerError
 		}
+
+		if consumed > limit {
+			m.Logger.Error("size limitation reached", zap.Any("consumed", consumed))
+			return echo.NewHTTPError(405, "you are using more than your quota")
+		}
+
 		return next(c)
 	}
 }
