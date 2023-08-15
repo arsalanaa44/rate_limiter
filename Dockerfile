@@ -1,18 +1,20 @@
-FROM golang:1.20
+FROM golang:alpine as builder
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
 
-
 RUN go mod download
 
-COPY  . .
+COPY . .
 
-RUN CGO_ENABLED=0 GOOS=windows go build -o /docker-gs-ping
+RUN CGO_ENABLED=0 GOOS=linux go build -o /rate_limiter
 
+FROM alpine:latest as release
+
+
+COPY --from=builder /rate_limiter .
 
 EXPOSE 8080
 
-CMD ["/docker-gs-ping"]
-
+ENTRYPOINT ["./rate_limiter"]

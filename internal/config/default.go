@@ -9,7 +9,7 @@ func Default() Config {
 		Debug: true,
 		Port:  8080,
 		Database: redis.Config{
-			URL: "0.0.0.0:6379",
+			URL: "localhost:6379",
 		},
 	}
 }

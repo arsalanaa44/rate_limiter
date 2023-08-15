@@ -13,16 +13,16 @@ services:
     networks:
       - rate_limiter
     environment:
-      - LIMITER_DATABASE__URL="redis:6379"
-      - LIMITER_DEBUG="true"
-      - LIMITER_PORT="8080"
+      - LIMITER_DATABASE__URL=redis:6379
+      - LIMITER_DEBUG=true
+      - LIMITER_PORT=8080
 
 
   redis:
     image: redis/redis-stack:latest
 
     # TODO - set password and test connection in browser
-    # command: redis-server --requirepass hibech
+    # command: redis-server --requirepass mypass
 
     networks:
       - rate_limiter
