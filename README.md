@@ -1,7 +1,7 @@
 <h6 align="center">here is Mehran, start coding --</h6>
 
 <p align="center">
-<img src="./assets/jeddi.png" height="250px">
+<img src="./assets/jeddi.png" height="250px a">
 </p>
 
 # rate limiter
@@ -69,7 +69,7 @@ http://localhost:8001/
 ## Design
 before accessing the API-server we have some middlewares to pass.
 <p align="center">
-<img src="./assets/design.png" height="250px">
+<img src="./assets/design.png" height="353px">
 </p>
 
 
